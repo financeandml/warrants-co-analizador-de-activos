@@ -1,0 +1,3 @@
+# cmd.exe lee los .bat en bloques y, con finales LF, puede saltar a una etiqueta
+# equivocada en un goto. Se fuerzan CRLF al descargar, sea cual sea el sistema.
+*.bat text eol=crlf

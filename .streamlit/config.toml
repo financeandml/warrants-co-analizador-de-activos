@@ -1,0 +1,56 @@
+# Tema claro para que la web se parezca a los graficos de matplotlib del
+# script original (fondo blanco, rejilla gris, colores por defecto de pyplot).
+
+[theme]
+base = "light"
+primaryColor = "#1f77b4"              # el azul por defecto de matplotlib (C0)
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F6F8"
+textColor = "#1A1A1A"
+linkColor = "#1f77b4"
+borderColor = "#D6DBE1"
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "6px"
+baseFontSize = 14
+linkUnderline = false
+
+greenColor = "#2CA02C"
+redColor = "#D62728"
+yellowColor = "#FFA500"
+orangeColor = "#FF7F0E"
+blueColor = "#1f77b4"
+grayColor = "#7F7F7F"
+
+# Paleta de matplotlib (tab10), para que las series salgan del mismo color
+chartCategoricalColors = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+]
+
+dataframeBorderColor = "#D6DBE1"
+dataframeHeaderBackgroundColor = "#F4F6F8"
+
+[theme.sidebar]
+backgroundColor = "#F4F6F8"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1A1A1A"
+borderColor = "#D6DBE1"
+primaryColor = "#1f77b4"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# headless = false (por defecto): al lanzar la app se abre el navegador solo.
+#
+# Puerto propio: el 8501 lo usa la app del proyecto QUANTUM. Si las dos usan
+# el mismo puerto, gana la que arranque primero y en el navegador acabas
+# viendo la otra app. 8510 es exclusivo de este analizador.
+port = 8510

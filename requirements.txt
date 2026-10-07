@@ -1,0 +1,31 @@
+# Versiones exactas con las que se ha verificado la app. Fijadas a proposito:
+# la app usa API de Streamlit 1.60 (st.tabs con key) y pandas 3, y una version
+# distinta puede arrancar y fallar despues en una pestaña concreta.
+# Requiere Python 3.12 o superior (scipy 1.18).
+
+# --- Web (app_analizador.py) ---
+streamlit==1.60.0
+altair==6.2.2
+plotly==6.9.0
+
+# --- Calculo y datos ---
+numpy==2.4.2
+pandas==3.0.1
+scipy==1.18.0
+yfinance==1.2.0
+# pandas.read_html la necesita (composicion del S&P 500 en el cribado y
+# segmentos de negocio). No se importa en el codigo: sin ella el fallo queda
+# silenciado y la pestaña solo dice que no ha podido obtener la composicion.
+lxml==6.1.1
+
+# --- Informe PDF y exportacion Excel del DCF ---
+reportlab==5.0.0
+pypdf==6.16.1
+matplotlib==3.11.1
+pillow==12.3.0
+openpyxl==3.1.5
+
+# --- Scripts originales de consola / cuaderno ---
+seaborn==0.13.2
+ipython==9.15.0
+ipywidgets==8.1.8

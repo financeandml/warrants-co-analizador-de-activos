@@ -1,0 +1,18 @@
+# Entorno virtual y cache de Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secretos de Streamlit: nunca al repositorio
+.streamlit/secrets.toml
+.env
+
+# Graficos que guarda el script interactivo (modos 2 y 3): se regeneran
+analisis_*/
+
+# Registros de ejecucion local
+analizador_out.txt
+analizador_err.txt
+
+# Temporales de Office (los ~$ que crea Excel al abrir el DCF exportado)
+~$*
