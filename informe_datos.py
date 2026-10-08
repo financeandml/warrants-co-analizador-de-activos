@@ -482,7 +482,10 @@ def recopilar(ticker, periodo="5y", confianza=99.0, umbral_sigmas=2.0,
     if cierres_no_positivos:
         pedir.incidencias.append(ma.texto_cierres_no_positivos(cierres_no_positivos, ticker))
 
-    retornos = hist["Return"].dropna()
+    # Logaritmicos, como la pestaña de riesgo de la pantalla y el script
+    # original: con los simples, el PDF de ICHR daba un CVaR de -16,58 % donde
+    # la pantalla decia -18,52 %.
+    retornos = hist["LogReturn"].dropna()
     riesgo_bruto = pedir(ma.calcular_metricas_riesgo, retornos, confianza / 100)
     riesgo = None
     if riesgo_bruto is not None and len(riesgo_bruto) == 3:

@@ -210,6 +210,42 @@ def comprobar_informe(at, etiqueta):
          detalle=f"anuncia {(guardado or {}).get('paginas')}, el PDF tiene {paginas}")
 
 
+def comprobar_riesgo_pantalla_y_pdf(at, etiqueta):
+    """El VaR y el CVaR del PDF tienen que ser los de la pestaña de riesgo.
+
+    El informe los calculaba con retornos simples y la pantalla con
+    logaritmicos: con ICHR, CVaR -16,58 % en el papel y -18,52 % en pantalla.
+    Se lee el PDF que la propia app acaba de generar, y cada aparicion de la
+    cifra junto a su rotulo (portada, resumen y apartado de riesgo) cuenta.
+    """
+    from pypdf import PdfReader
+
+    correr(at, "Riesgo VaR/CVaR")
+    pantalla = {m.label: m.value for m in pestana(at, "Riesgo VaR/CVaR").metric}
+    pdf = at.session_state["informe_pdf"]["datos"]
+    texto = " ".join(re.sub(r"\s+", " ", p.extract_text() or "")
+                     for p in PdfReader(io.BytesIO(pdf)).pages)
+    cifra = r"([+\-]?\d+\.\d+%)"
+    nivel = r"(?: \d+(?:\.\d+)? %)?"
+    # En el apartado de riesgo las cifras van delante de sus rotulos.
+    delante = re.findall(rf"{cifra} {cifra} {cifra} {cifra} VaR histórico VaR paramétrico "
+                         rf"CVaR histórico", texto)
+    en_pdf = {
+        # (?<!C): «VaR histórico» va dentro de «CVaR histórico» y se llevaba su cifra.
+        "VaR Histórico": set(re.findall(rf"(?<!C)VaR histórico{nivel} {cifra}", texto))
+                         | {d[0] for d in delante},
+        "VaR Paramétrico": set(re.findall(rf"(?<!C)VaR paramétrico{nivel} {cifra}", texto))
+                           | {d[1] for d in delante},
+        "CVaR": set(re.findall(rf"CVaR(?: histórico)?{nivel} {cifra}", texto))
+                | {d[2] for d in delante},
+    }
+    for rotulo, cifras in en_pdf.items():
+        paso(f"{etiqueta} · {rotulo}: el PDF da la cifra de la pantalla", at,
+             rotulo="Riesgo VaR/CVaR",
+             extra_ok=bool(cifras) and cifras == {pantalla.get(rotulo)},
+             detalle=f"pantalla {pantalla.get(rotulo)}, PDF {sorted(cifras)}")
+
+
 AVISO_NO_POSITIVOS = "igual o inferior a cero"
 
 
@@ -384,6 +420,7 @@ def recorrido_completo():
         seccion(nombre, funcion)
     seccion("DCF", comprobar_dcf, at, "ICHR")
     seccion("Informe PDF", comprobar_informe, at, "ICHR")
+    seccion("Riesgo: pantalla y PDF", comprobar_riesgo_pantalla_y_pdf, at, "ICHR")
     seccion("Buscador", buscador)
 
     bloque("OTROS ACTIVOS: OTRA DIVISA Y OTRO MERCADO")

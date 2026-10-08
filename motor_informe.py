@@ -630,7 +630,8 @@ def _riesgo(d, capital):
     ], columnas=2, color_signo=False))
 
     p.append(ib.espacio(4))
-    p.append(ib.figura(_g_riesgo(hist["Return"].dropna(), g, confianza)))
+    # La misma serie que dio el VaR: si no, las lineas caen sobre otra distribucion.
+    p.append(ib.figura(_g_riesgo(hist["LogReturn"].dropna(), g, confianza)))
 
     if suf:
         p.append(ib.no_partir(50))
