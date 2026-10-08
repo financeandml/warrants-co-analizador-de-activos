@@ -80,6 +80,7 @@ y después `"Analizador Web.bat"`).
 | `motor_*.py` | Cálculo, sin interfaz: análisis, cribado, DCF, factores, fundamentales, gráfico, informe, mercado, origen, régimen, segmentos, validación |
 | `pestana_*.py`, `bloque_informe.py`, `bloques_cribado.py` | Interfaz de cada pestaña |
 | `informe_*.py`, `partidas_contables.py` | Composición del informe PDF |
+| `verificar_app.py` | Verificación de la app completa, sin navegador; con `--aleatorio N`, sobre activos al azar |
 | `verificar_*.py`, `auditar_fundamentales.py` | Baterías de verificación del motor (ver abajo) |
 | `ANALIZADOR DE ACTIVOS.py` | Script original de consola en el que se basa el motor |
 | `ANALIZADOR DE ACTIVOS INTERACTIVO.py` | Versión de consola que pregunta el ticker; se abre con `Analizador de Activos.bat` |
@@ -89,6 +90,9 @@ y después `"Analizador Web.bat"`).
 Con el entorno activado:
 
 ```
+python verificar_app.py               # la app entera: 13 pestañas, botones, PDF y Excel
+python verificar_app.py --aleatorio 15          # 15 activos y ajustes al azar
+python verificar_app.py --aleatorio 15 --semilla 7   # repetir una pasada concreta
 python verificar_fidelidad.py         # motor de la web contra el script original
 python verificar_fundamentales.py     # corrección del motor de fundamentales
 python verificar_estrategia.py        # módulos de análisis complementario

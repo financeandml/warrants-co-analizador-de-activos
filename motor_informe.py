@@ -2545,8 +2545,9 @@ def _cierre(d):
     if inc:
         p.append(ib.h2("Incidencias durante la generación"))
         p.append(ib.parrafo(
-            "Las consultas siguientes no han devuelto datos. Los apartados "
-            "afectados lo indican en su lugar correspondiente. Se relacionan "
+            "Las consultas siguientes no han devuelto datos, o los han devuelto "
+            "con una limitación que afecta a las cifras. Los apartados a los "
+            "que les faltan datos lo indican en su lugar correspondiente. Se relacionan "
             "aquí para que quede constancia de qué falta y por qué, en lugar de "
             "que el documento aparente estar completo."))
         p.append(ib.tabla([[t] for t in inc], ["Consulta"], anchos=[1],

@@ -3,8 +3,9 @@
 Ejecuta app_analizador.py como lo haria Streamlit y recorre lo que un usuario
 puede hacer: las trece pestañas, los botones que disparan calculo (informe PDF,
 Monte Carlo, DCF y su Excel), los calculos opcionales del cribado, el buscador
-y el cambio de activo. Con --aleatorio repite el recorrido sobre activos y
-ajustes elegidos al azar, en orden de pestañas aleatorio.
+y el cambio de activo, y el aviso de cierres no positivos (CL=F) en pantalla y
+en el PDF. Con --aleatorio repite el recorrido sobre activos y ajustes
+elegidos al azar, en orden de pestañas aleatorio.
 
 Cada paso afirma: cero excepciones; que la pestaña abierta NO conserva el aviso
 de aplazada (prueba de que su codigo se ejecuto); y que no aparece un aviso de
@@ -118,6 +119,14 @@ def paso(nombre, at, rotulo=None, extra_ok=True, detalle=""):
     return ok
 
 
+def anotar(nombre, ok, detalle=""):
+    """Para comprobaciones que no pasan por la app: motores y PDF."""
+    resultados.append((nombre, ok))
+    print(f"  [{'OK  ' if ok else 'FALLO'}] {nombre}" + (f" · {detalle}" if detalle else ""),
+          flush=True)
+    return ok
+
+
 def seccion(nombre, funcion, *args):
     """Un paso que revienta no debe tapar el resultado de los demas."""
     try:
@@ -201,6 +210,74 @@ def comprobar_informe(at, etiqueta):
          detalle=f"anuncia {(guardado or {}).get('paginas')}, el PDF tiene {paginas}")
 
 
+AVISO_NO_POSITIVOS = "igual o inferior a cero"
+
+
+def comprobar_cierres_no_positivos(simbolo="CL=F", periodo="10y"):
+    """Un cierre <= 0 no tiene retorno logaritmico y el calculo lo descarta.
+
+    CL=F cerro a -37,63 el 20/04/2020. Un hecho, una fuente: el diagnostico
+    tiene que nombrar exactamente las sesiones que faltan en el historico, y la
+    cabecera, la comparativa y el PDF tienen que decirlo con el mismo texto.
+    """
+    import re as _re
+
+    import yfinance as yf
+    from pypdf import PdfReader
+
+    import informe_datos
+    import motor_analisis as ma
+    import motor_informe as mi
+
+    hist = ma.descargar_historico(simbolo, periodo)
+    diag = hist.attrs.get("cierres_no_positivos")
+    bruto = yf.Ticker(simbolo).history(period=periodo, auto_adjust=True)
+    # Las dos primeras filas las quitan siempre los dos dropna del original.
+    faltan = sorted(set(bruto.index[2:].strftime("%d/%m/%Y"))
+                    - set(hist.index.strftime("%d/%m/%Y")))
+    anotar(f"{simbolo} {periodo} · el diagnóstico nombra las sesiones que faltan",
+           bool(diag) and sorted(diag["descartadas"]) == faltan,
+           detalle=f"faltan {faltan}, diagnóstico {diag and diag['descartadas']}")
+    if not diag:
+        return
+    esperado = ma.texto_cierres_no_positivos(diag, simbolo)
+
+    at = nuevo(simbolo)
+    correr(at)
+    at.sidebar.select_slider[0].set_value(periodo)
+    correr(at)
+    # Fuera de las pestañas: el aviso de la comparativa puede tener el MISMO
+    # texto, y buscar en toda la pagina daba la cabecera por buena sin ella.
+    en_pestanas = sum(w.value == esperado for t in at.tabs for w in t.warning)
+    en_pagina = sum(w.value == esperado for w in at.warning)
+    paso(f"{simbolo} {periodo} · la cabecera avisa con el texto del diagnóstico", at,
+         extra_ok=en_pagina - en_pestanas >= 1,
+         detalle=f"{en_pagina - en_pestanas} en cabecera, {en_pestanas} en pestañas")
+
+    par = ma.descargar_par(simbolo, "SPY", ma.FECHA_INICIO_PERF)
+    diag_par = ma.diagnostico_cierres(par[simbolo])
+    tab = pestana(at, "Comparativa")
+    paso(f"{simbolo} · la comparativa avisa de su propia serie", at, rotulo="Comparativa",
+         extra_ok=bool(diag_par) and ma.texto_cierres_no_positivos(diag_par, simbolo)
+         in [w.value for w in tab.warning])
+
+    datos = informe_datos.recopilar(simbolo, periodo=periodo, incluir_seleccion=False,
+                                    incluir_fundamentales=False)
+    anotar(f"{simbolo} · el PDF lleva el aviso en sus incidencias",
+           esperado in datos["incidencias"])
+    pdf = mi.generar(simbolo, capital=100_000, datos=datos)
+    impreso = " ".join(_re.sub(r"\s+", " ", p.extract_text() or "")
+                       for p in PdfReader(io.BytesIO(pdf)).pages)
+    # La entrada de la comparativa repite el texto tras «comparativa: »; sin
+    # distinguirlas, el PDF pasaba aunque faltase la del historico.
+    apariciones = _re.findall(r"(comparativa: )?" + _re.escape(_re.sub(r"\s+", " ", esperado)),
+                              impreso)
+    anotar(f"{simbolo} · el aviso del histórico sale impreso en el PDF",
+           "" in apariciones,
+           detalle=f"{len(apariciones)} apariciones, "
+                   f"{sum(a == '' for a in apariciones)} del histórico")
+
+
 # ---------------------------------------------------------------------------
 #  Recorrido completo (determinista)
 # ---------------------------------------------------------------------------
@@ -213,6 +290,8 @@ def recorrido_completo():
     correr(at)
     paso("Arranque con el ticker por defecto", at, extra_ok=len(at.title) > 0,
          detalle=at.title[0].value if at.title else "")
+    paso("Sin cierres negativos no hay aviso de precios no positivos", at,
+         extra_ok=not any(AVISO_NO_POSITIVOS in w.value for w in at.warning))
     for r in ROTULOS:
         ti = time.time()
         correr(at, r)
@@ -329,6 +408,9 @@ def recorrido_completo():
              detalle=str(at3.error[0].value)[:70] if at3.error else "")
 
     seccion("Ticker inexistente", inexistente)
+
+    bloque("PRECIOS NO POSITIVOS: CL=F CERRÓ EN NEGATIVO EL 20/04/2020")
+    seccion("Precios no positivos", comprobar_cierres_no_positivos)
     return time.time() - t0
 
 

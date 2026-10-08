@@ -166,7 +166,54 @@ def descargar_historico(simbolo, periodo=PERIODO_HISTORICO):
 
     if "Volume" in bruto.columns:
         h["Volume"] = bruto["Volume"].reindex(h.index)
+    # El segundo dropna descarta en silencio las sesiones sin retorno
+    # logaritmico; se deja constancia aqui, sin tocar la serie, para avisar.
+    h.attrs["cierres_no_positivos"] = diagnostico_cierres(bruto["Close"])
     return h
+
+
+def diagnostico_cierres(cierres):
+    """Sesiones con cierre <= 0, cuyo retorno logaritmico no esta definido.
+
+    np.log de un cociente negativo da NaN y el dropna se lleva la sesion sin
+    avisar. CL=F cerro a -37,63 el 20/04/2020: con diez años de historico esa
+    sesion y la siguiente desaparecian, el calculo enlazaba el ultimo cierre
+    positivo con el siguiente y el peor dia real (-306 %) no figuraba en
+    ninguna cifra. Devuelve None si no hay ninguna; si las hay, sus fechas y
+    cierres y el peor retorno simple de la serie completa, que si las incluye.
+    """
+    serie = cierres.dropna()
+    malas = serie[serie <= 0]
+    if malas.empty:
+        return None
+    # Se pierden las sesiones cuyo cociente con la anterior no es positivo: la
+    # del cierre negativo y la que la sigue, no solo la primera.
+    cociente = serie / serie.shift(1)
+    descartadas = cociente[cociente <= 0]
+    simples = serie.pct_change().dropna()
+    peor = simples.idxmin()
+    return {
+        "sesiones": [(f.strftime("%d/%m/%Y"), float(v)) for f, v in malas.items()],
+        "descartadas": [f.strftime("%d/%m/%Y") for f in descartadas.index],
+        "peor_dia": (peor.strftime("%d/%m/%Y"), float(simples[peor])),
+    }
+
+
+def _sesiones(n):
+    return f"{n} {'sesión' if n == 1 else 'sesiones'}"
+
+
+def texto_cierres_no_positivos(diagnostico, simbolo):
+    """El aviso, redactado una sola vez: lo usan la pantalla y el informe PDF."""
+    cierres = ", ".join(f"{f}: {v:,.2f}" for f, v in diagnostico["sesiones"])
+    descartadas = diagnostico["descartadas"]
+    fecha_peor, peor = diagnostico["peor_dia"]
+    return (f"{simbolo} tiene {_sesiones(len(diagnostico['sesiones']))} con cierre "
+            f"igual o inferior a cero ({cierres}). El retorno logarítmico no está "
+            f"definido para un precio negativo o nulo, así que el cálculo descarta "
+            f"{_sesiones(len(descartadas))} ({', '.join(descartadas)}) y enlaza el "
+            f"último cierre positivo con el siguiente. El peor día real ({peor:+.0%} "
+            f"el {fecha_peor}) no entra en ninguna cifra calculada sobre esta serie.")
 
 
 def descargar_rango(simbolo, inicio, fin=None):

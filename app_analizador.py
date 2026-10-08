@@ -333,6 +333,13 @@ if not suf["todo_suficiente"]:
                     st.session_state.ticker = a["simbolo"]
                     st.rerun()
 
+# Un cierre <= 0 no tiene retorno logaritmico y el calculo lo descarta: sin este
+# aviso, el peor dia real desaparece de todas las cifras sin que se note.
+cierres_no_positivos = hist.attrs.get("cierres_no_positivos")
+if cierres_no_positivos:
+    st.warning(motor.texto_cierres_no_positivos(cierres_no_positivos, ticker),
+               icon=":material/warning:")
+
 sigma_ref = earnings["sigma_normal"] if earnings else None
 situacion = motor.situacion_actual(hist, confianza, sigma_ref)
 metricas = motor.analizar_performance_profesional(hist["Close"])
@@ -1256,6 +1263,11 @@ with tab_comp:
             else:
                 stats = {t: motor.analizar_performance_profesional(par[t])
                          for t in (ticker, benchmark)}
+                for t in (ticker, benchmark):
+                    diag_par = motor.diagnostico_cierres(par[t])
+                    if diag_par:
+                        st.warning(motor.texto_cierres_no_positivos(diag_par, t),
+                                   icon=":material/warning:")
 
                 st.subheader(f"Análisis de Eficiencia: {ticker} vs {benchmark}")
 

@@ -424,6 +424,10 @@ def datos_comparativa(pedir, ticker, referencia, divisa):
             f"comparativa: el proveedor no ha devuelto la serie de "
             f"{', '.join(faltan)}; el apartado no puede calcularse")
         return None
+    for t in (ticker, referencia):
+        diag = ma.diagnostico_cierres(par[t])
+        if diag:
+            pedir.incidencias.append("comparativa: " + ma.texto_cierres_no_positivos(diag, t))
     a = pedir(ma.analizar_performance_profesional, par[ticker])
     b = pedir(ma.analizar_performance_profesional, par[referencia])
     if not a or not b:
@@ -473,6 +477,10 @@ def recopilar(ticker, periodo="5y", confianza=99.0, umbral_sigmas=2.0,
     hist = ma.descargar_historico(ticker, periodo)
     if hist is None or hist.empty:
         raise ValueError(f"Sin histórico de precios para {ticker}.")
+    # El mismo aviso que la cabecera de la pantalla, con el mismo texto.
+    cierres_no_positivos = hist.attrs.get("cierres_no_positivos")
+    if cierres_no_positivos:
+        pedir.incidencias.append(ma.texto_cierres_no_positivos(cierres_no_positivos, ticker))
 
     retornos = hist["Return"].dropna()
     riesgo_bruto = pedir(ma.calcular_metricas_riesgo, retornos, confianza / 100)
