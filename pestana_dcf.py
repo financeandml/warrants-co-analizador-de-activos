@@ -380,13 +380,33 @@ def _diagnostico(res):
                                 "Detalle": st.column_config.TextColumn(width="large")})
 
 
+def _hojas_del_libro(datos):
+    """Cuantas hojas tiene el libro, contadas en el propio fichero.
+
+    No puede ir escrito en el rotulo: las hojas de detalle de cada metodo y la
+    de sensibilidad solo existen cuando el metodo las produce, de modo que el
+    numero cambia de una empresa a otra. Ponia «catorce»; ICHR da dieciseis y
+    LEN dieciocho.
+    """
+    import io
+
+    import openpyxl
+
+    libro = openpyxl.load_workbook(io.BytesIO(datos), read_only=True)
+    try:
+        return len(libro.sheetnames)
+    finally:
+        libro.close()
+
+
 def _descarga(res):
     st.markdown("#### Exportar")
     st.caption(
-        "El libro lleva catorce hojas: resumen, supuestos con su origen, coste de capital, "
-        "estados historicos completos, FCFF publicado, proyeccion, una hoja por metodo con su "
-        "detalle año a año, matriz de sensibilidad, diagnostico y metodologia. Las cifras van "
-        "sin redondear, para que el Excel se pueda auditar sin la aplicacion delante."
+        "El libro lleva resumen, supuestos con su origen, coste de capital, estados "
+        "historicos completos, FCFF publicado, proyeccion, una hoja por metodo y otra con "
+        "su detalle año a año cuando el metodo lo produce, matriz de sensibilidad cuando "
+        "se puede calcular, diagnostico y metodologia. Las cifras van sin redondear, para "
+        "que el Excel se pueda auditar sin la aplicacion delante."
     )
     clave = f"dcf_xlsx_{res['simbolo']}"
     if st.button("Generar Excel completo", icon=":material/table_view:", width="stretch"):
@@ -401,7 +421,8 @@ def _descarga(res):
     if datos:
         fecha = pd.Timestamp.today().strftime("%Y%m%d")
         st.download_button(
-            f"Descargar DCF_{res['simbolo']}_{fecha}.xlsx ({len(datos) / 1024:,.0f} KB)",
+            f"Descargar DCF_{res['simbolo']}_{fecha}.xlsx "
+            f"({_hojas_del_libro(datos)} hojas · {len(datos) / 1024:,.0f} KB)",
             data=datos, file_name=f"DCF_{res['simbolo']}_{fecha}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             icon=":material/download:", width="stretch")
